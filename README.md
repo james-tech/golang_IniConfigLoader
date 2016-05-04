@@ -33,3 +33,22 @@ map['session-name']['key']=value
 ```
 
 - you can print the config set to log too
+
+- here is a demo
+
+```go
+package main
+
+import "config"
+
+func main() {
+	var conf config.ConfigIni
+	err := conf.LoadConfigFromFile("./config.ini")
+	if err != nil {
+		log.Fatal("load config failed: " + err.Error())
+		os.Exit(-1)
+	}
+	conf.PrintConfigs()
+	conf.GetConfigValueFatal("Session1", "testkey")
+}
+```
