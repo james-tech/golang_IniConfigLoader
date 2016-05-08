@@ -38,7 +38,29 @@ func (o *ConfigIni) LoadConfigFromFile(fname string) error {
 func (o *ConfigIni) GetConfigValueFatal(session, key string) (value string) {
 	value, err := o.GetConfigValue(session, key)
 	if err != nil {
-		log.Fatal("GetConfigValueFatal: " + err.Error())
+		log.Fatalln("GetConfigValueFatal: " + err.Error())
+	}
+	return
+}
+
+// if value not exist, log fatal and exit program
+func (o *ConfigIni) GetAndSetConfigValueFatal(session string, key string, opChangeValue func(v *string)) (value string) {
+	value, err := o.GetConfigValue(session, key)
+	if err != nil {
+		log.Fatalln("GetConfigValueFatal: " + err.Error())
+		return
+	}
+	opChangeValue(&value)
+	// log.Println("Debug: ", value)
+	// set value after opChangeValue
+	o.Configs[session][key] = value
+	return
+}
+
+func (o *ConfigIni) GetConfigSessionFatal(session string) (m map[string]string) {
+	m, err := o.GetConfigSession(session)
+	if err != nil {
+		log.Fatalln("GetConfigSessionFatal: " + err.Error())
 	}
 	return
 }
@@ -68,7 +90,23 @@ func (o *ConfigIni) GetConfigValue(session, key string) (value string, err error
 	if o.Configs[session] == nil {
 		return "", fmt.Errorf("session %s not exist", session)
 	}
-	return o.Configs[session][key], nil
+
+	value, exist := o.Configs[session][key]
+	if !exist {
+		return "", fmt.Errorf("key %s not exist", key)
+	}
+	return value, nil
+}
+
+// get a session config map
+func (o *ConfigIni) GetConfigSession(session string) (m map[string]string, err error) {
+	if o.Configs == nil {
+		return nil, fmt.Errorf("%s", "config empty!")
+	}
+	if o.Configs[session] == nil {
+		return nil, fmt.Errorf("session %s not exist", session)
+	}
+	return o.Configs[session], nil
 }
 
 func (o *ConfigIni) parseIniFileData(data string) error {
@@ -148,24 +186,27 @@ func (o *ConfigIni) parseIniFileData(data string) error {
 
 // print the configs loaded
 func (o *ConfigIni) PrintConfigs() error {
+	log.Println("@Print Config:")
+	log.Println("--------------------------------------------------")
 	log.Printf("# Config file: %s\n", o.configFile)
-	log.Printf("- Config set: {\n")
+	log.Printf("# Config set: {\n")
 	if o.Configs == nil {
 		return fmt.Errorf("config not loaded!")
 	}
 
 	for kn, vn := range o.Configs {
-		log.Printf("[%s]\n", kn)
+		log.Printf("+ [%s]\n", kn)
 
 		if vn == nil {
 			continue
 		}
 
 		for k, v := range vn {
-			log.Printf("%s=%s\n", k, v)
+			log.Printf("\t- %s=%s\n", k, v)
 		}
 	}
 
 	log.Printf("}\n")
+	log.Println("--------------------------------------------------")
 	return nil
 }
